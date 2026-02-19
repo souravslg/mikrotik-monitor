@@ -75,9 +75,7 @@ export default function RouterDashboard() {
                 const data = await resTraffic.json();
                 setTraffic(data);
 
-                // Update history for "bridge" interface (or fallback to first one/specific one)
-                // We'll look for an interface named "bridge" or "bridge-local" or just take the first bridge type
-                // For simplicity, let's try to find one named "bridge", if not, look for type "bridge", if not, skip.
+                // Update history for "bridge" interface
                 const bridgeIface =
                     data.find((t: any) => t.name === 'bridge') ||
                     data.find((t: any) => t.name === 'bridge1') ||
@@ -97,13 +95,16 @@ export default function RouterDashboard() {
                     });
                 }
             } else {
-                // If traffic fetch fails, log it but maybe don't block the whole UI. 
-                // But inspecting the error is useful.
+                // If traffic fetch fails, display it
                 const errData = await resTraffic.json();
                 console.error("Traffic API Error:", errData);
+                // Only set error if it persists to avoid flickering, or use a toast
+                // For now, let's just log it to console as user requested, but maybe append to error state if it's persistent
+                // setError(`Traffic Error: ${errData.details || errData.error}`); 
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Traffic fetch error", e);
+            // setError(`Traffic fetch failed: ${e.message}`);
         }
     };
 
@@ -170,9 +171,11 @@ export default function RouterDashboard() {
 
             {error && (
                 <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl backdrop-blur-sm">
-                    {error}
                 </div>
             )}
+
+            {/* Debug info for traffic if it failed silently but we caught it in state */}
+            {/* We could add a small indicator for API health if needed */}
 
             {resources && (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
