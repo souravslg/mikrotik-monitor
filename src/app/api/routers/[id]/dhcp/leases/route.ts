@@ -1,7 +1,6 @@
-
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
 import { RouterOSAPI } from 'node-routeros';
+import { decodeRouterCredentials } from '@/lib/auth-helper';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,25 +8,23 @@ export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { id } = await params;
-
-    // Fetch router credentials
-    const router = db.prepare('SELECT * FROM routers WHERE id = ?').get(id) as any;
-
-    if (!router) {
-        return NextResponse.json({ error: 'Router not found' }, { status: 404 });
-    }
-
-    const client = new RouterOSAPI({
-        host: router.host,
-        port: router.port,
-        user: router.username,
-        password: router.password,
-        keepalive: false,
-        timeout: 10,
-    });
-
     try {
+        const { id } = await params;
+        const router = decodeRouterCredentials(id);
+
+        if (!router) {
+            return NextResponse.json({ error: 'Invalid router credentials' }, { status: 400 });
+        }
+
+        const client = new RouterOSAPI({
+            host: router.host,
+            port: router.port,
+            user: router.username,
+            password: router.password,
+            keepalive: false,
+            timeout: 10,
+        });
+
         await client.connect();
 
         // Fetch DHCP leases
@@ -38,6 +35,6 @@ export async function GET(
         return NextResponse.json(leases);
 
     } catch (error: any) {
-        return NextResponse.json({ error: `Failed to connect: ${error.message}` }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Failed to fetch DHCP leases' }, { status: 500 });
     }
 }

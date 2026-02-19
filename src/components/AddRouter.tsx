@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from 'lucide-react';
 
 interface AddRouterProps {
-    onSuccess: () => void;
+    onSuccess: (router: any) => void;
     onCancel: () => void;
 }
 
@@ -46,7 +46,8 @@ export default function AddRouter({ onSuccess, onCancel }: AddRouterProps) {
                 throw new Error(data.error || 'Failed to add router');
             }
 
-            onSuccess();
+            // Return the full router object with the new encoded ID
+            onSuccess(data);
         } catch (err: any) {
             setError(err.message);
         } finally {

@@ -1,19 +1,9 @@
-
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
 import { RouterOSAPI } from 'node-routeros';
+import { encodeRouterCredentials } from '@/lib/auth-helper';
 
 export async function GET() {
-    try {
-        const routers = db.prepare('SELECT * FROM routers ORDER BY created_at DESC').all();
-        // Don't return passwords in plain text if possible, but for management we might need them or just keep them hidden in UI
-        // For now, return everything but maybe obscure password? 
-        // Actually, we need password to connect later. 
-        // We should probably encrypt it at rest, but for this MVP we'll keep it simple as per plan.
-        return NextResponse.json(routers);
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to fetch routers' }, { status: 500 });
-    }
+    return NextResponse.json({ message: "Router storage is now client-side." });
 }
 
 export async function POST(request: Request) {
@@ -22,7 +12,7 @@ export async function POST(request: Request) {
         const { name, host, port, username, password } = body;
 
         // Validate input
-        if (!name || !host || !username || !password) {
+        if (!host || !username || !password) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
@@ -49,24 +39,26 @@ export async function POST(request: Request) {
 
         try {
             await client.connect();
-            // If successful, close and save
+            // If successful, close
             await client.close();
         } catch (connError: any) {
             return NextResponse.json({ error: `Connection failed: ${connError.message}` }, { status: 400 });
         }
 
-        // Save to DB
-        const stmt = db.prepare(
-            'INSERT INTO routers (name, host, port, username, password) VALUES (?, ?, ?, ?, ?)'
-        );
-        const result = stmt.run(name, cleanHost, portNum, username, password);
+        // Instead of saving to DB, return the encoded ID for client-side storage
+        const routerConfig = {
+            name: name || cleanHost,
+            host: cleanHost,
+            port: portNum.toString(),
+            username,
+            password
+        };
+
+        const encodedId = encodeRouterCredentials(routerConfig);
 
         return NextResponse.json({
-            id: result.lastInsertRowid,
-            name,
-            host,
-            port: portNum,
-            username
+            id: encodedId,
+            ...routerConfig
         }, { status: 201 });
 
     } catch (error: any) {

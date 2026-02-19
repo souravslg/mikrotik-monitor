@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,7 +8,7 @@ import AddRouter from './AddRouter';
 import Link from 'next/link';
 
 interface Router {
-    id: number;
+    id: string; // Changed to string for encoded credentials
     name: string;
     host: string;
     username: string;
@@ -20,16 +19,15 @@ export default function RouterList() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const fetchRouters = async () => {
+    const fetchRouters = () => {
+        setLoading(true);
         try {
-            setLoading(true);
-            const res = await fetch('/api/routers');
-            if (res.ok) {
-                const data = await res.json();
-                setRouters(data);
+            const stored = localStorage.getItem('mikrotik_routers');
+            if (stored) {
+                setRouters(JSON.parse(stored));
             }
-        } catch (error) {
-            console.error('Failed to fetch routers', error);
+        } catch (e) {
+            console.error("Failed to load routers from storage", e);
         } finally {
             setLoading(false);
         }
@@ -39,17 +37,19 @@ export default function RouterList() {
         fetchRouters();
     }, []);
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this router?')) return;
+    const handleDelete = (id: string) => {
+        if (!confirm('Are you sure you want to delete this router from your browser specific storage?')) return;
 
-        try {
-            const res = await fetch(`/api/routers/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                setRouters(routers.filter(r => r.id !== id));
-            }
-        } catch (error) {
-            console.error('Failed to delete router', error);
-        }
+        const newRouters = routers.filter(r => r.id !== id);
+        setRouters(newRouters);
+        localStorage.setItem('mikrotik_routers', JSON.stringify(newRouters));
+    };
+
+    const handleAddSuccess = (newRouter: Router) => {
+        const updatedRouters = [newRouter, ...routers];
+        setRouters(updatedRouters);
+        localStorage.setItem('mikrotik_routers', JSON.stringify(updatedRouters));
+        setShowAddModal(false);
     };
 
     return (
@@ -101,10 +101,7 @@ export default function RouterList() {
 
             {showAddModal && (
                 <AddRouter
-                    onSuccess={() => {
-                        setShowAddModal(false);
-                        fetchRouters();
-                    }}
+                    onSuccess={handleAddSuccess}
                     onCancel={() => setShowAddModal(false)}
                 />
             )}
