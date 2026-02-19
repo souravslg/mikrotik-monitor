@@ -119,7 +119,7 @@ export default function RouterDashboard() {
 
         const trafficInterval = setInterval(() => {
             if (id) fetchTraffic();
-        }, 2000); // Traffic every 2s
+        }, 5000); // Traffic every 5s to prevent timeouts in serverless mode
 
         return () => {
             clearInterval(resourceInterval);

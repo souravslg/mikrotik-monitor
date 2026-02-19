@@ -22,7 +22,7 @@ export async function GET(
             user: router.username,
             password: router.password,
             keepalive: false,
-            timeout: 20, // Increased timeout for serverless environment
+            timeout: 60, // Significantly increased timeout for Vercel execution
         });
 
         await client.connect();
