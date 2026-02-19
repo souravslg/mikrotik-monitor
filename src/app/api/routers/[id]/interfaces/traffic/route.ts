@@ -30,15 +30,15 @@ export async function GET(
         // 1. Fetch all interfaces first to get their names
         const interfaces = await client.write('/interface/print');
 
-        // 2. Extract names. 
-        // Monitor-traffic requires a comma-separated list of names to return data for specific interfaces
-        // OR we can just request for all relevant ones.
-        // Let's filter for running interfaces to reduce load, or just fetch all.
-        // The API command '/interface/monitor-traffic' with 'interface' param taking a list is standard.
-        // If we want ALL, we might need to iterate or pass all names.
-        // Passing 'all' keyword in api sometimes acts differently than CLI.
-        // Best approach: Get names of all interfaces.
-        const interfaceNames = interfaces.map((i: any) => i.name).join(',');
+        // 2. Filter for running interfaces to reduce load and avoid issues with disabled ones
+        const runningInterfaces = interfaces.filter((i: any) => i.running === 'true' || i.name === 'bridge' || i.name.includes('bridge'));
+
+        if (runningInterfaces.length === 0) {
+            await client.close();
+            return NextResponse.json([]);
+        }
+
+        const interfaceNames = runningInterfaces.map((i: any) => i.name).join(',');
 
         // 3. Monitor traffic once
         const traffic = await client.write('/interface/monitor-traffic', [`=interface=${interfaceNames}`, '=once=']);

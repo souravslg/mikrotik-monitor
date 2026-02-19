@@ -96,6 +96,11 @@ export default function RouterDashboard() {
                         return newHistory;
                     });
                 }
+            } else {
+                // If traffic fetch fails, log it but maybe don't block the whole UI. 
+                // But inspecting the error is useful.
+                const errData = await resTraffic.json();
+                console.error("Traffic API Error:", errData);
             }
         } catch (e) {
             console.error("Traffic fetch error", e);
